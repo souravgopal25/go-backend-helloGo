@@ -11,6 +11,7 @@ import (
 	_ "math/rand"
 	"net/http"
 	_ "net/http"
+	"strconv"
 	_ "strconv"
 )
 
@@ -25,6 +26,7 @@ type Greet struct {
 
 //Init greetVar as Slice Greet struct
 var greetSlice []Greet
+var id = 0
 
 func main() {
 	//Init Router
@@ -47,8 +49,9 @@ func main() {
 func greetWithName(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(request)
+	id++
 	greet := Greet{
-		ID:   "10",
+		ID:   strconv.Itoa(id),
 		NAME: params["name"],
 	}
 
