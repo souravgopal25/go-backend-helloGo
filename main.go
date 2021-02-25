@@ -1,9 +1,12 @@
 package main
 
 import (
+	"database/sql"
+	_ "database/sql"
 	"encoding/json"
 	_ "encoding/json"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	_ "github.com/gorilla/mux"
 	"log"
@@ -31,6 +34,11 @@ var id = 0
 func main() {
 	//Init Router
 	r := mux.NewRouter()
+	db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/testdb")
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
 	//MockData
 	greetSlice = append(greetSlice, Greet{ID: "1", NAME: "Sourav Sharma"})
 	greetSlice = append(greetSlice, Greet{ID: "2", NAME: "Shyam Sharma"})
@@ -40,10 +48,19 @@ func main() {
 	//Route Handler/Endpoint
 	r.HandleFunc("/api/greet", greet).Methods("GET")
 	r.HandleFunc("/api/{name}", greetWithName).Methods("GET")
-
+	r.HandleFunc("/api/{name}", greetUSer).Methods("GET")
 	//listen&Serve
-	log.Fatal(http.ListenAndServe(":8001", r))
+	log.Fatal(http.ListenAndServe(":8002", r))
 	fmt.Println("Hello Sourav")
+}
+
+func greetUSer(writer http.ResponseWriter, request *http.Request) {
+	/*writer.Header().Set("Content-Type","application/json")
+	params:=mux.Vars(request)
+	for i,s greetSlice{
+
+	}*/
+
 }
 
 func greetWithName(writer http.ResponseWriter, request *http.Request) {
