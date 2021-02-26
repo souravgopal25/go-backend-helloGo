@@ -30,7 +30,49 @@ func main() {
 	r.HandleFunc("/showAll", showAll).Methods("GET")
 	r.HandleFunc("/show/{id}", showEntry).Methods("GET")
 	r.HandleFunc("/add", addEntry).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8003", r))
+	r.HandleFunc("/update/{id}", updateEntry).Methods("PUT")
+	r.HandleFunc("/delete/{regNo}", delEntry).Methods("DELETE")
+	log.Fatal(http.ListenAndServe(":8006", r))
+
+}
+func dbConnection() (db *sql.DB) {
+	dbDriver := "mysql"
+	dbUser := "Sourav"
+	dbPass := "rootpass11"
+	dbName := "studentDB"
+	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp(127.0.0.1:3306)/"+dbName)
+	if err != nil {
+		panic(err.Error())
+	}
+	return db
+
+}
+func delEntry(writer http.ResponseWriter, request *http.Request) {
+	db := dbConnection()
+	stmt, err := db.Prepare("DELETE FROM tStudent WHERE RegNo=?")
+	if err != nil {
+		panic(err.Error())
+	}
+	params := mux.Vars(request)
+
+	stmt.Exec(params["regNo"])
+	result, err := db.Query("SELECT * FROM tStudent WHERE RegNo =" + params["regNo"])
+	if err != nil {
+		panic(err.Error())
+	}
+	var obj Student
+	for result.Next() {
+
+		result.Scan(&obj.Sno, &obj.RegNo, &obj.Name, &obj.Branch)
+		//personSlice = append(personSlice, obj)
+
+		fmt.Println(obj)
+	}
+	json.NewEncoder(writer).Encode(obj)
+
+}
+
+func updateEntry(writer http.ResponseWriter, request *http.Request) {
 
 }
 
@@ -38,11 +80,8 @@ func addEntry(writer http.ResponseWriter, request *http.Request) {
 	//writer.Header().Set("Content-Type","application/json")
 	var studentObject Student
 	_ = json.NewDecoder(request.Body).Decode(&studentObject)
-	db, err := sql.Open("mysql", "Sourav:rootpass11@tcp(127.0.0.1:3306)/studentDB")
-	if err != nil {
-		panic(err.Error())
-		return
-	}
+
+	db := dbConnection()
 
 	stmt, err := db.Prepare("INSERT INTO tStudent (RegNo,Name,Branch) VALUES (?,?,?)")
 	if err != nil {
@@ -56,10 +95,7 @@ func addEntry(writer http.ResponseWriter, request *http.Request) {
 }
 
 func showEntry(writer http.ResponseWriter, request *http.Request) {
-	db, err := sql.Open("mysql", "Sourav:rootpass11@tcp(127.0.0.1:3306)/studentDB")
-	if err != nil {
-		panic(err.Error())
-	}
+	db := dbConnection()
 	params := mux.Vars(request)
 	result, err := db.Query("SELECT * FROM tStudent WHERE RegNo =" + params["id"])
 	if err != nil {
@@ -78,11 +114,7 @@ func showEntry(writer http.ResponseWriter, request *http.Request) {
 }
 
 func showAll(writer http.ResponseWriter, request *http.Request) {
-	db, err := sql.Open("mysql", "Sourav:rootpass11@tcp(127.0.0.1:3306)/studentDB")
-
-	if err != nil {
-		panic(err.Error())
-	}
+	db := dbConnection()
 	//writer.Header().Set("Content-Type","applciation/json")
 	result, err := db.Query("SELECT * FROM tStudent")
 	if err != nil {
