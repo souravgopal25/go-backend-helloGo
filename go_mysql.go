@@ -24,12 +24,56 @@ type Student struct {
 func main() {
 
 	fmt.Println("Connection Success")
-	//db.Query("INSERT INTO tStudent (RegNo,Name,Branch) VALUES('18','Sourav','cse')")
+	//db.Query("INSERT INTO tStudent (RegNo,Name,Branch) VALUES('20','Sourav Sharma','CSE')")
 	r := mux.NewRouter()
 
 	r.HandleFunc("/showAll", showAll).Methods("GET")
-	log.Fatal(http.ListenAndServe(":8000", r))
-	fmt.Println("Hello Sourav")
+	r.HandleFunc("/show/{id}", showEntry).Methods("GET")
+	r.HandleFunc("/add", addEntry).Methods("POST")
+	log.Fatal(http.ListenAndServe(":8003", r))
+
+}
+
+func addEntry(writer http.ResponseWriter, request *http.Request) {
+	//writer.Header().Set("Content-Type","application/json")
+	var studentObject Student
+	_ = json.NewDecoder(request.Body).Decode(&studentObject)
+	db, err := sql.Open("mysql", "Sourav:rootpass11@tcp(127.0.0.1:3306)/studentDB")
+	if err != nil {
+		panic(err.Error())
+		return
+	}
+
+	stmt, err := db.Prepare("INSERT INTO tStudent (RegNo,Name,Branch) VALUES (?,?,?)")
+	if err != nil {
+		panic(err.Error())
+	}
+	stmt.Exec(studentObject.RegNo, studentObject.Name, studentObject.Branch)
+	defer db.Close()
+	defer stmt.Close()
+	json.NewEncoder(writer).Encode(studentObject)
+
+}
+
+func showEntry(writer http.ResponseWriter, request *http.Request) {
+	db, err := sql.Open("mysql", "Sourav:rootpass11@tcp(127.0.0.1:3306)/studentDB")
+	if err != nil {
+		panic(err.Error())
+	}
+	params := mux.Vars(request)
+	result, err := db.Query("SELECT * FROM tStudent WHERE RegNo =" + params["id"])
+	if err != nil {
+		panic(err.Error())
+	}
+	var obj Student
+	for result.Next() {
+
+		result.Scan(&obj.Sno, &obj.RegNo, &obj.Name, &obj.Branch)
+		//personSlice = append(personSlice, obj)
+
+		fmt.Println(obj)
+	}
+	json.NewEncoder(writer).Encode(obj)
 
 }
 
@@ -50,5 +94,7 @@ func showAll(writer http.ResponseWriter, request *http.Request) {
 		result.Scan(&studentObject.Sno, &studentObject.RegNo, &studentObject.Name, &studentObject.Branch)
 		slice = append(slice, studentObject)
 	}
+	defer result.Close()
+	defer db.Close()
 	json.NewEncoder(writer).Encode(&slice)
 }
