@@ -32,7 +32,7 @@ func main() {
 	r.HandleFunc("/add", addEntry).Methods("POST")
 	r.HandleFunc("/update/{id}", updateEntry).Methods("PUT")
 	r.HandleFunc("/delete/{regNo}", delEntry).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":8006", r))
+	log.Fatal(http.ListenAndServe(":8007", r))
 
 }
 func dbConnection() (db *sql.DB) {
@@ -68,11 +68,27 @@ func delEntry(writer http.ResponseWriter, request *http.Request) {
 
 		fmt.Println(obj)
 	}
+	defer stmt.Close()
+	defer db.Close()
 	json.NewEncoder(writer).Encode(obj)
 
 }
 
 func updateEntry(writer http.ResponseWriter, request *http.Request) {
+	db := dbConnection()
+	stmt, err := db.Prepare("UPDATE tStudent SET RegNo=?,Name =?, Branch=? WHERE RegNo=? ")
+	if err != nil {
+		panic(err.Error())
+	}
+	var studentObject Student
+	_ = json.NewDecoder(request.Body).Decode(&studentObject)
+	params := mux.Vars(request)
+	result, err := stmt.Exec(studentObject.RegNo, studentObject.Name, studentObject.Branch, params["id"])
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println(result.RowsAffected())
+	json.NewEncoder(writer).Encode(studentObject)
 
 }
 
